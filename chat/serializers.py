@@ -1,12 +1,6 @@
 from rest_framework import serializers
-from .models import Message, User
-
-
-class MessageSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Message
-        fields = '__all__'
-
+from .models import *
+from drf_writable_nested import WritableNestedModelSerializer
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(max_length=8, min_length=4, write_only=True)
@@ -37,18 +31,29 @@ class RegisterSerializer(serializers.ModelSerializer):
         return instance
 
 
-class UserSerializer(serializers.ModelSerializer):
+class UserSerializer(WritableNestedModelSerializer, serializers.ModelSerializer):
+    """Сериализация пользователя"""
     class Meta:
         model = User
-        fields = ['id', 'name', 'email', 'password']
-        extra_kwargs = {
-            'password': {'write_only': True}
-        }
+        fields = ("id", "username")
 
-    def create(self, validated_data):
-        password = validated_data.pop('password', None)
-        instance = self.Meta.model(**validated_data)
-        if password is not None:
-            instance.set_password(password)
-        instance.save()
-        return instance
+
+class RoomSerializers(WritableNestedModelSerializer, serializers.ModelSerializer):
+    """Сериализация комнат чата,
+    Можно выбрать с кем из сапорта вести диалог или его автоматически назначат"""
+    creater = UserSerializer()
+    invited = UserSerializer(many=True)
+
+    class Meta:
+        model = Room
+        fields = ("name", "status", "id", "creater", "invited", "date")
+
+
+class ChatSerializers(WritableNestedModelSerializer, serializers.ModelSerializer):
+    """Сериализация чата"""
+    user = UserSerializer()
+
+    class Meta:
+        model = Chat
+        fields = ("user", "text", "date")
+

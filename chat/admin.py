@@ -1,11 +1,19 @@
 from django.contrib import admin
-from . models import Message
+from . models import *
 
-class CategoryAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'status', 'date',)
-    readonly_fields = ('id', 'name', 'text_of_problem', 'date',)
-    list_filter = ('status',)
-    search_fields = ('name',)
+class RoomAdmin(admin.ModelAdmin):
+    """Комнаты запросов"""
+    list_display = ("name", "creater", "invited_user", "date", "status")
+
+    def invited_user(self, obj):
+        return "\n".join([user.username for user in obj.invited.all()])
 
 
-admin.site.register(Message, CategoryAdmin)
+class ChatAdmin(admin.ModelAdmin):
+    """Диалоги"""
+    list_display = ("room", "user", "text", "date")
+
+
+admin.site.register(Chat, ChatAdmin)
+admin.site.register(Room, RoomAdmin)
+

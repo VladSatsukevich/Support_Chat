@@ -1,42 +1,37 @@
 from django.contrib.auth.models import User
 from django.db import models
-from django.contrib.auth.models import BaseUserManager
 from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken
 
 
-class Message(models.Model):
-    name = models.CharField(max_length=120, null=False, blank=False)
-    date = models.DateTimeField(default=timezone.now)
-    text_of_problem = models.TextField()
-    answer = models.TextField(max_length=256, default='В рассмотрении', )
-    STATUS = (
-        ('Нерешен', 'Нерешен'),
-        ('Решен', 'Решен'),
-        ('Замарожен', 'Замарожен'),
-    )
-    status = models.CharField(max_length=120, default='Нерешен', choices=STATUS)
+class Room(models.Model):
+    """Модель запроса чата с поддержкой"""
+    name = models.CharField(max_length=120, null=True, blank=False, verbose_name="Title of the appeal")
+    creater = models.ForeignKey(User, verbose_name="The creator of the appeal", on_delete=models.CASCADE)
+    invited = models.ManyToManyField(User, verbose_name="Participants", related_name="invited_user")
+    date = models.DateTimeField("Date of creation", auto_now_add=True)
+    Not_resolved = 'not resolved'
+    Resolved = 'resolved'
+    Frozen = 'frozen'
+    STATUS = [
+        (Not_resolved, 'not resolved'),
+        (Resolved, 'resolved'),
+        (Frozen, 'frozen'),
+    ]
+    status = models.CharField(max_length=120, default=Not_resolved, choices=STATUS, null=True, verbose_name="Status")
+
+    class Meta:
+        verbose_name = "Request"
+        verbose_name_plural = "Requests"
 
 
-class UserManager(BaseUserManager):
+class Chat(models.Model):
+    """Модель чата"""
+    room = models.ForeignKey(Room, verbose_name="Request number", on_delete=models.CASCADE)
+    user = models.ForeignKey(User, verbose_name="User", on_delete=models.CASCADE)
+    text = models.TextField("Message", max_length=500)
+    date = models.DateTimeField("Date of shipment", auto_now_add=True)
 
-    def create_user(self, username, email, password=None):
-        if username is None:
-            raise TypeError('Укажите логин')
-        if email is None:
-            raise TypeError('Укажите почту')
-
-        user = self.model(username=username, email=self.normalize_email(email))
-        user.set_password(password)
-        user.save()
-        return user
-
-    def create_superuser(self, username, email, password=None):
-        if password is None:
-            raise TypeError('Укажите пароль')
-
-        user = self.create_user(username, email, password)
-        user.is_superuser = True
-        user.is_staff = True
-        user.save()
-        return user
+    class Meta:
+        verbose_name = "Request Message"
+        verbose_name_plural = "Request Messages"

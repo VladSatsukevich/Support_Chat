@@ -1,16 +1,15 @@
 from django.urls import path
 from .views import *
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework.routers import DefaultRouter
+
 
 urlpatterns = [
-    path('', apiOverview, name='apiOverview'),
-    path('api/register/', RegisterView.as_view(), name="register"),
-    path('api/token/', TokenObtainPairView.as_view()),
-    path('api/token/refresh/', TokenRefreshView.as_view()),
-    path('api/generic/<int:id>/', GenericAPIView.as_view()),
-    path('api/message-list/', ShowAll, name='message-list'),
-    path('api/message-detail/<int:pk>/', ViewMessage, name='message-detail'),
-    path('api/message-create/', CreateMessage, name='message-create'),
-    path('api/message-update/<int:pk>/', updateMessage, name='message-update'),
+    #path('api/register/', RegisterView.as_view(), name="register"),
+    #path('api/token/', TokenObtainPairView.as_view(), name="token"),
+    #path('api/token/refresh/', TokenRefreshView.as_view(), name="token-refresh"),
+    #path('api/room/', Rooms.as_view(), name="room"),
+    #path('api/dialog/', Dialog.as_view(), name="dialog"),
+    #path('api/users/', AddUsersRoom.as_view(), name="users"),
 
 ]
