@@ -1,7 +1,7 @@
 from django.http import HttpResponse
 from .models import *
 from .serializers import *
-from rest_framework import generics, status, mixins, viewsets
+from rest_framework import generics, status, viewsets, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.decorators import api_view
@@ -11,39 +11,61 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
 
 
-class GenericAPIView(generics.GenericAPIView, mixins.ListModelMixin, mixins.CreateModelMixin,
-                     mixins.UpdateModelMixin, mixins.RetrieveModelMixin, mixins.DestroyModelMixin):
-    """
-    Get, post, put, delete методы, аутентификация через JWS токены через 'Postman'
-    """
-    serializer_class = MessageSerializer
-    queryset = Message.objects.all()
+class Rooms(APIView):
+    """Комнаты запросов"""
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
-    lookup_field = 'id'
 
-    def get(self, request, id=None):
-        if id:
-            return self.retrieve(request)
+    def get(self, request):
+        rooms = Room.objects.all()
+        serializer = RoomSerializers(rooms, many=True)
+        return Response({"data": serializer.data})
+
+    def post(self, request):
+        Room.objects.create(creater=request.user)
+        return Response({"status": "Успешно"})
+
+
+class Dialog(APIView):
+    """Диалог запроса, сообщение"""
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        room = request.GET.get("room")
+        chat = Chat.objects.filter(room=room)
+        serializer = ChatSerializers(chat, many=True)
+        return Response({"data": serializer.data})
+
+    def post(self, request):
+        dialog = ChatPostSerializers(data=request.data)
+        if dialog.is_valid():
+            dialog.save(user=request.user)
+            return Response({"status": "Сообщение отправлено"})
         else:
-            return self.list(request)
-        return self.list(request)
+            return Response({"status": "Ошибка"})
 
-    def post(self, request, id=None):
-        return self.create(request, id)
 
-    def perform_create(self, serializer):
-        serializer.save( created_by=self.request.user)
+class AddUsersRoom(APIView):
+    """Добавление пользователя-ей в комнату чата"""
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
 
-    def put(self, request, id=None):
-        return self.update(request, id)
+    def get(self, request):
+        users = User.objects.all()
+        serializer = UserSerializer(users, many=True)
+        return Response(serializer.data)
 
-    def perform_update(self, serializer):
-        serializer.save(created_by=self.request.user)
-
-    def delete(self, request):
-        return self.destroy(request, id)
-
+    def post(self, request):
+        room = request.data.get("room")
+        user = request.data.get("user")
+        try:
+            room = Room.objects.get(id=room)
+            room.invited.add(user)
+            room.save()
+            return Response(status=201)
+        except:
+            return Response(status=400)
 
 class RegisterView(APIView):
     """
@@ -58,7 +80,7 @@ class RegisterView(APIView):
         serializer.save()
         user_data = serializer.data
 
-        return Response(user_data, status=status.HTTP_201_CREATED)
+        return Response(user_data, status=201)
 
 @api_view(['GET'])
 def apiOverview(request):
@@ -66,47 +88,11 @@ def apiOverview(request):
     Навигация по сайту
     """
     api_urls = {
-        'Registration': 'http://127.0.0.1:8000/api/register/',
-        'Login/Token gain-refresh': 'http://127.0.0.1:8000/api/token/',
-        'Admin login': 'http://127.0.0.1:8000/admin',
-        'All messages': 'http://127.0.0.1:8000/api/message-list/',
-        'Details for 1 message': 'http://127.0.0.1:8000/api/message-detail/<int:pk>/',
-        'Message create': 'http://127.0.0.1:8000/api/message-create/',
-        'Message update': 'http://127.0.0.1:8000/api/message-update/<int:pk>/',
-        'Generic Api View': 'http://127.0.0.1:8000/api/generic/<int:id>/Postman only',
-
+        'Регистрация': 'http://127.0.0.1:8000/api/register/',
+        'Логин + Токен': 'http://127.0.0.1:8000/api/token/',
+        'Админка': 'http://127.0.0.1:8000/admin',
+        'Все возможные запросы': 'http://127.0.0.1:8000/api/room/',
+        'Сам запрос': 'http://127.0.0.1:8000/api/dialog/',
+        'Пользователи': 'http://127.0.0.1:8000/api/users/',
     }
     return Response(api_urls)
-
-@api_view(['GET'])
-def ShowAll(request):
-    """ Показать все обращения """
-    message = Message.objects.all()
-    serializer = MessageSerializer(message, many=True)
-    return Response(serializer.data)
-
-@api_view(['GET'])
-def ViewMessage(request, pk):
-    """ Показать конктреное обращение"""
-    message = Message.objects.get(id=pk)
-    serializer = MessageSerializer(message, many=False)
-    return Response(serializer.data)
-
-@api_view(['POST'])
-def CreateMessage(request):
-    """ Создать обращение """
-    serializer = MessageSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-    return Response(serializer.data)
-
-
-@api_view(['PUT'])
-def updateMessage(request, pk):
-    """ Обновить обращение"""
-    message = Message.objects.put(id=pk)
-    serializer = MessageSerializer(instance=message, data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-    return Response(serializer.data)
-

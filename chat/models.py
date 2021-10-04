@@ -5,17 +5,34 @@ from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken
 
 
-class Message(models.Model):
-    name = models.CharField(max_length=120, null=False, blank=False)
-    date = models.DateTimeField(default=timezone.now)
-    text_of_problem = models.TextField()
-    answer = models.TextField(max_length=256, default='В рассмотрении', )
+class Room(models.Model):
+    """Модель запроса чата с поддержкой"""
+    name = models.CharField(max_length=120, null=True, blank=False, verbose_name="Название обращения")
+    creater = models.ForeignKey(User, verbose_name="Создатель обращения", on_delete=models.CASCADE)
+    invited = models.ManyToManyField(User, verbose_name="Участники", related_name="invited_user")
+    date = models.DateTimeField("Дата создания", auto_now_add=True)
     STATUS = (
         ('Нерешен', 'Нерешен'),
         ('Решен', 'Решен'),
         ('Замарожен', 'Замарожен'),
     )
-    status = models.CharField(max_length=120, default='Нерешен', choices=STATUS)
+    status = models.CharField(max_length=120, default='Нерешен', choices=STATUS, null=True, verbose_name="Статус")
+
+    class Meta:
+        verbose_name = "Запрос"
+        verbose_name_plural = "Запросы"
+
+
+class Chat(models.Model):
+    """Модель чата"""
+    room = models.ForeignKey(Room, verbose_name="Номер запроса", on_delete=models.CASCADE)
+    user = models.ForeignKey(User, verbose_name="Пользователь", on_delete=models.CASCADE)
+    text = models.TextField("Сообщение", max_length=500)
+    date = models.DateTimeField("Дата отправки", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Сообщение запроса"
+        verbose_name_plural = "Сообщения запросов"
 
 
 class UserManager(BaseUserManager):
@@ -28,15 +45,5 @@ class UserManager(BaseUserManager):
 
         user = self.model(username=username, email=self.normalize_email(email))
         user.set_password(password)
-        user.save()
-        return user
-
-    def create_superuser(self, username, email, password=None):
-        if password is None:
-            raise TypeError('Укажите пароль')
-
-        user = self.create_user(username, email, password)
-        user.is_superuser = True
-        user.is_staff = True
         user.save()
         return user
