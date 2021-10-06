@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import *
-from drf_writable_nested import WritableNestedModelSerializer
+
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(max_length=8, min_length=4, write_only=True)
@@ -31,14 +31,14 @@ class RegisterSerializer(serializers.ModelSerializer):
         return instance
 
 
-class UserSerializer(WritableNestedModelSerializer, serializers.ModelSerializer):
+class UserSerializer(serializers.ModelSerializer):
     """Сериализация пользователя"""
     class Meta:
         model = User
         fields = ("id", "username")
 
 
-class RoomSerializers(WritableNestedModelSerializer, serializers.ModelSerializer):
+class RoomSerializers(serializers.ModelSerializer):
     """Сериализация комнат чата,
     Можно выбрать с кем из сапорта вести диалог или его автоматически назначат"""
     creater = UserSerializer()
@@ -49,7 +49,7 @@ class RoomSerializers(WritableNestedModelSerializer, serializers.ModelSerializer
         fields = ("name", "status", "id", "creater", "invited", "date")
 
 
-class ChatSerializers(WritableNestedModelSerializer, serializers.ModelSerializer):
+class ChatSerializers(serializers.ModelSerializer):
     """Сериализация чата"""
     user = UserSerializer()
 
@@ -57,3 +57,10 @@ class ChatSerializers(WritableNestedModelSerializer, serializers.ModelSerializer
         model = Chat
         fields = ("user", "text", "date")
 
+
+class ChatPostSerializers(serializers.ModelSerializer):
+    """Сериализация чата"""
+
+    class Meta:
+        model = Chat
+        fields = ("room", "text")
