@@ -33,17 +33,3 @@ class Chat(models.Model):
     class Meta:
         verbose_name = "Сообщение запроса"
         verbose_name_plural = "Сообщения запросов"
-
-
-class UserManager(BaseUserManager):
-
-    def create_user(self, username, email, password=None):
-        if username is None:
-            raise TypeError('Укажите логин')
-        if email is None:
-            raise TypeError('Укажите почту')
-
-        user = self.model(username=username, email=self.normalize_email(email))
-        user.set_password(password)
-        user.save()
-        return user
